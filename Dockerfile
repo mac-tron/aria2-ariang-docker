@@ -1,4 +1,4 @@
-FROM alpine:3.16.0
+FROM alpine:latest
 
 ARG BUILD_DATE
 ARG VCS_REF
@@ -17,14 +17,15 @@ ENV ARIA2RPCPORT=8080 \
 RUN apk update && \
     apk add --no-cache --update \
     caddy \
-    aria2=${ARIA2_VERSION}-r0 \
+    aria2 \
     su-exec \
     curl \
     xmlstarlet \
     bash \
     openssl \
     tzdata && \
-    rm -rf /var/cache/apk/*
+    rm -rf /var/cache/apk/* && \
+    aria2c --version
 
 # AriaNG
 WORKDIR /usr/local/www/ariang
