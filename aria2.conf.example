@@ -1,0 +1,50 @@
+# Files and Directories
+dir=/aria2/data
+file-allocation=none
+content-disposition-default-utf8=true
+on-download-complete=/aria2/conf/move.sh
+remote-time=false
+
+# HTTP/FTP/SFTP Options
+http-user=your_username
+http-passwd=your_password
+timeout=60
+max-tries=5
+retry-wait=5
+user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36
+check-certificate=false
+disable-ipv6=true
+
+# BitTorrent/Metalink Options
+max-overall-upload-limit=0
+max-upload-limit=0
+rpc-save-upload-metadata=false
+
+# Download Options
+max-overall-download-limit=0
+max-download-limit=0
+max-connection-per-server=8
+min-split-size=128M
+split=8
+max-concurrent-downloads=3
+always-resume=false
+piece-length=4M
+allow-piece-length-change=true
+
+# System Options
+disk-cache=512M
+
+# Log Options
+console-log-level=notice
+log=/aria2/conf/aria2.log
+log-level=notice
+
+# Session Options
+input-file=/aria2/conf/aria2.session
+save-session=/aria2/conf/aria2.session
+
+# RPC Options
+enable-rpc=true
+rpc-allow-origin-all=true
+rpc-listen-all=true
+rpc-secret=your_rpc_secret 

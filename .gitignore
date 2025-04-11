@@ -1,0 +1,11 @@
+# Configuration files
+aria2.conf
+
+# Log files
+*.log
+
+# Session files
+*.session
+
+# Downloaded files
+/data/ 

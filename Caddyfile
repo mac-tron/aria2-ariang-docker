@@ -3,14 +3,60 @@
   auto_https off
 }
 
-:8080 
-reverse_proxy /jsonrpc 127.0.0.1:6800
-reverse_proxy /rpc 127.0.0.1:6800
+:8080 {
+  # Security headers
+  header {
+    # Enable HSTS
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    # Prevent clickjacking
+    X-Frame-Options "SAMEORIGIN"
+    # Prevent MIME type sniffing
+    X-Content-Type-Options "nosniff"
+    # Enable XSS protection
+    X-XSS-Protection "1; mode=block"
+    # Referrer policy
+    Referrer-Policy "strict-origin-when-cross-origin"
+  }
 
-root * /usr/local/www/ariang
-file_server
-encode gzip
+  # Aria2 RPC endpoints with connection handling
+  reverse_proxy /jsonrpc 127.0.0.1:6800 {
+    transport http {
+      tls
+      tls_insecure_skip_verify
+      keepalive idle_conns 100
+      keepalive_idle_conns 100
+      dial_timeout 10s
+      response_header_timeout 10s
+      read_timeout 10s
+      write_timeout 10s
+    }
+  }
+  
+  reverse_proxy /rpc 127.0.0.1:6800 {
+    transport http {
+      tls
+      tls_insecure_skip_verify
+      keepalive idle_conns 100
+      keepalive_idle_conns 100
+      dial_timeout 10s
+      response_header_timeout 10s
+      read_timeout 10s
+      write_timeout 10s
+    }
+  }
 
-log {
-  level warn
+  # Serve AriaNg
+  root * /usr/local/www/ariang
+  file_server
+  encode gzip
+
+  # Logging
+  log {
+    level warn
+    output file /var/log/caddy/access.log {
+      roll_size 20mb
+      roll_keep 10
+      roll_keep_for 720h
+    }
+  }
 }
