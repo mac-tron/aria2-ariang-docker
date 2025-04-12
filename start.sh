@@ -10,11 +10,6 @@ pid_file=/aria2/conf/aria2.pid
 # Create directories if they don't exist
 mkdir -p "$conf_path" "$data_path"
 
-# If config does not exist - use default
-if [ ! -f "$conf_path/aria2.conf" ]; then
-    cp "$conf_copy_path/aria2.conf" "$conf_path/aria2.conf"
-fi
-
 # Handle RPC secret
 if [ -n "$RPC_SECRET" ]; then
     sed -i '/^rpc-secret=/d' "$conf_path/aria2.conf"
