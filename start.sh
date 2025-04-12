@@ -7,13 +7,34 @@ data_path=/aria2/data
 ariang_js_path=/usr/local/www/ariang/js/aria-ng*.js
 pid_file=/aria2/conf/aria2.pid
 
+# Set user and group IDs
+userid=${PUID:-$(id -u)}
+groupid=${PGID:-$(id -g)}
+
+echo "Running as user $userid:$groupid"
+
 # Create directories if they don't exist
 mkdir -p "$conf_path" "$data_path"
+
+# Set permissions
+chown -R "$userid":"$groupid" "$conf_path"
+chown -R "$userid":"$groupid" "$data_path"
+chmod -R 755 "$conf_path"
+chmod -R 755 "$data_path"
+
+# If config does not exist - use default
+if [ ! -f "$conf_path/aria2.conf" ]; then
+    cp "$conf_copy_path/aria2.conf" "$conf_path/aria2.conf"
+    chown "$userid":"$groupid" "$conf_path/aria2.conf"
+    chmod 644 "$conf_path/aria2.conf"
+fi
 
 # Handle RPC secret
 if [ -n "$RPC_SECRET" ]; then
     sed -i '/^rpc-secret=/d' "$conf_path/aria2.conf"
     printf 'rpc-secret=%s\n' "${RPC_SECRET}" >>"$conf_path/aria2.conf"
+    chown "$userid":"$groupid" "$conf_path/aria2.conf"
+    chmod 644 "$conf_path/aria2.conf"
 
     if [ -n "$EMBED_RPC_SECRET" ]; then
         echo "Embedding RPC secret into ariang Web UI"
@@ -34,22 +55,14 @@ fi
 
 # Create session file if it doesn't exist
 touch "$conf_path/aria2.session"
+chown "$userid":"$groupid" "$conf_path/aria2.session"
+chmod 644 "$conf_path/aria2.session"
 
 # Handle RPC port
 if [ -n "$ARIA2RPCPORT" ]; then
     echo "Changing rpc request port to $ARIA2RPCPORT"
     sed -i "s/6800/${ARIA2RPCPORT}/g" $ariang_js_path
 fi
-
-# Set user and group IDs
-userid=${PUID:-$(id -u)}
-groupid=${PGID:-$(id -g)}
-
-echo "Running as user $userid:$groupid"
-
-# Set permissions
-chown -R "$userid":"$groupid" "$conf_path"
-chown -R "$userid":"$groupid" "$data_path"
 
 # Start services
 echo "Starting Caddy..."
