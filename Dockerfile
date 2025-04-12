@@ -3,15 +3,15 @@ FROM alpine:latest
 ARG BUILD_DATE
 ARG VCS_REF
 ARG ARIANG_VERSION=1.3.10
-ARG ARIA2_VERSION=1.37.0
-
-# Create non-root user
-RUN addgroup -S -g 1000 aria2 && \
-    adduser -S -D -H -h /aria2 -s /sbin/nologin -G aria2 -u 1000 aria2
+ARG ARIA2_VERSION=1.36.0
 
 ENV ARIA2RPCPORT=8080 \
     PUID=1000 \
     PGID=1000
+
+# Create non-root user with specified PUID and PGID
+RUN addgroup -S -g ${PGID} aria2 && \
+    adduser -S -D -H -h /aria2 -s /sbin/nologin -G aria2 -u ${PUID} aria2
 
 # Install dependencies
 RUN apk update && \
