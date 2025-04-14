@@ -24,13 +24,7 @@
   }
   
   reverse_proxy @aria2_rpc 127.0.0.1:{$ARIA2_RPC_PORT} {
-    transport http {
-      keepalive_idle_conns 100
-      dial_timeout 10s
-      response_header_timeout 10s
-      read_timeout 10s
-      write_timeout 10s
-    }
+    # transport http block removed to allow WebSocket proxying
   }
 
   # Serve AriaNg
