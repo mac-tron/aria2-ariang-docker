@@ -29,7 +29,9 @@ log_error() {
 # Function to check if a port is available
 check_port() {
     port="$1"
-    if nc -z 127.0.0.1 "${port}" 2>/dev/null; then
+    # Convert port number to hexadecimal
+    hex_port=$(printf '%04X' "${port}")
+    if grep -q ":[${hex_port}]" /proc/net/tcp; then
         log_error "Port ${port} is already in use. Please check for other services using this port."
         return 1
     fi

@@ -29,8 +29,7 @@ RUN apk update && \
     xmlstarlet \
     bash \
     openssl \
-    tzdata \
-    netcat-openbsd && \
+    tzdata && \
     rm -rf /var/cache/apk/* && \
     aria2c --version
 
