@@ -149,17 +149,22 @@ caddy start --config "${caddyfile}" --adapter=caddyfile || { log_error "Failed t
 sleep 1  # Give Caddy a moment to start
 
 log_info "Starting aria2c..."
-# Run aria2c in daemon mode with proper user permissions
-su-exec "${userid}:${groupid}" aria2c --daemon ${ARIA2_PORT_OPTION} "$@" & 
-ARIA2_PID=$!
-echo "${ARIA2_PID}" > "${pid_file}" || log_warn "Could not write PID file"
-sleep 1  # Give aria2c a moment to start
-
-# Verify aria2c process is still running after a moment
-if ! kill -0 "${ARIA2_PID}" 2>/dev/null; then
-    log_error "Failed to start aria2c"
+# Run aria2c and capture error output
+ERROR_LOG="/tmp/aria2c_error.log"
+if ! su-exec "${userid}:${groupid}" aria2c --daemon ${ARIA2_PORT_OPTION} "$@" 2>$ERROR_LOG; then
+    log_error "Failed to start aria2c. Error: $(cat $ERROR_LOG)"
     exit 1
 fi
+
+# Try to get the PID
+sleep 1
+ARIA2_PID=$(pgrep aria2c)
+if [ -z "$ARIA2_PID" ]; then
+    log_error "Failed to start aria2c. Error: $(cat $ERROR_LOG 2>/dev/null || echo 'No error output captured')"
+    exit 1
+fi
+
+echo "${ARIA2_PID}" > "${pid_file}" || log_warn "Could not write PID file"
 
 # Verify services are running
 if ! pgrep caddy >/dev/null; then
