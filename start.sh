@@ -11,7 +11,7 @@ log_prefix="[$(date '+%Y-%m-%d %H:%M:%S')]"
 
 # Set default ports (can be overridden by environment variables)
 : "${UI_PORT:=8080}"
-: "${ARIA2RPCPORT:=6800}"
+: "${ARIA2_RPC_PORT:=6800}"
 
 # Function to log messages
 log_info() {
@@ -53,39 +53,17 @@ if [ ! -f "${conf_path}/aria2.session" ]; then
 fi
 
 # Handle RPC secret
+ARIA2_SECRET_OPTION=""
 if [ -n "${RPC_SECRET}" ]; then
-    log_info "Setting RPC secret"
-    if grep -q "^rpc-secret=" "${conf_path}/aria2.conf"; then
-        # Remove existing rpc-secret line
-        sed -i '/^rpc-secret=/d' "${conf_path}/aria2.conf" || { log_error "Could not update RPC secret in config"; exit 1; }
-    fi
-    
-    # Add new RPC secret
-    printf 'rpc-secret=%s\n' "${RPC_SECRET}" >> "${conf_path}/aria2.conf" || { log_error "Could not add RPC secret to config"; exit 1; }
-
-    if [ -n "${EMBED_RPC_SECRET}" ]; then
-        log_info "Embedding RPC secret into ariang Web UI"
-        RPC_SECRET_BASE64=$(echo -n "${RPC_SECRET}" | base64 -w 0)
-        sed -i 's,secret:"[^"]*",secret:"'"${RPC_SECRET_BASE64}"'",g' ${ariang_js_path} || log_warn "Could not embed RPC secret in AriaNG"
-    fi
+    log_info "Setting RPC secret via command line"
+    ARIA2_SECRET_OPTION="--rpc-secret=${RPC_SECRET}"
 fi
 
 # Update ports if needed
-ARIA2_PORT_OPTION=""
-if [ "${ARIA2RPCPORT}" != "6800" ]; then
-    log_info "Changing RPC port to ${ARIA2RPCPORT}"
-    # Update AriaNG
-    sed -i "s/6800/${ARIA2RPCPORT}/g" ${ariang_js_path} || log_warn "Could not update RPC port in AriaNG"
-    # Update Caddyfile
-    sed -i "s/127.0.0.1:6800/127.0.0.1:${ARIA2RPCPORT}/g" "${caddyfile}" || log_warn "Could not update RPC port in Caddyfile"
-    # Add port option for aria2c
-    ARIA2_PORT_OPTION="--rpc-listen-port=${ARIA2RPCPORT}"
-fi
-
-if [ "${UI_PORT}" != "8080" ]; then
-    log_info "Changing Web UI port to ${UI_PORT}"
-    sed -i "s/:8080/:${UI_PORT}/g" "${caddyfile}" || log_warn "Could not update UI port in Caddyfile"
-fi
+log_info "Using UI Port: ${UI_PORT}"
+log_info "Using Aria2 RPC Port: ${ARIA2_RPC_PORT}"
+export UI_PORT # Export for Caddy
+export ARIA2_RPC_PORT # Export for Caddy
 
 # Handle basic auth
 if [ -n "${BASIC_AUTH_USERNAME}" ] && [ -n "${BASIC_AUTH_PASSWORD}" ]; then
@@ -101,7 +79,7 @@ fi
 mkdir -p /var/log/caddy || log_warn "Could not create Caddy log directory"
 
 # Set permissions
-chown -R "${userid}:${groupid}" "${conf_path}" "${data_path}" /var/log/caddy || log_warn "Could not set ownership of directories"
+chown -R "${userid}:${groupid}" "${conf_path}" "${data_path}" /var/log/caddy /config || log_warn "Could not set ownership of directories"
 
 # Verify Caddyfile
 log_info "Validating Caddy configuration..."
@@ -141,7 +119,7 @@ shutdown() {
 }
 
 # Trap SIGTERM and SIGINT
-trap shutdown SIGTERM SIGINT
+trap shutdown TERM INT
 
 # Start services
 log_info "Starting Caddy..."
@@ -162,7 +140,10 @@ fi
 # Run aria2c and capture error output in detail
 ERROR_LOG="/tmp/aria2c_error.log"
 log_info "Running aria2c"
-su-exec "$userid":"$groupid" aria2c "$@"
+su-exec "$userid":"$groupid" aria2c "$@" --rpc-listen-port="${ARIA2_RPC_PORT}" ${ARIA2_SECRET_OPTION} 2> "${ERROR_LOG}" || {
+    log_error "Failed to start aria2c. Error: $(cat $ERROR_LOG)"
+    exit 1
+}
 
 # Try to get the PID
 sleep 1

@@ -3,7 +3,7 @@
   auto_https off
 }
 
-:8080 {
+:{$UI_PORT} {
   # Security headers
   header {
     # Enable HSTS
@@ -23,7 +23,7 @@
     path /jsonrpc /rpc
   }
   
-  reverse_proxy @aria2_rpc 127.0.0.1:6800 {
+  reverse_proxy @aria2_rpc 127.0.0.1:{$ARIA2_RPC_PORT} {
     transport http {
       keepalive_idle_conns 100
       dial_timeout 10s
