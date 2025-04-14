@@ -26,18 +26,6 @@ log_error() {
     echo "${log_prefix} ERROR: $1" >&2
 }
 
-# Function to check if a port is available
-check_port() {
-    port="$1"
-    # Convert port number to hexadecimal
-    hex_port=$(printf '%04X' "${port}")
-    if grep -q ":[${hex_port}]" /proc/net/tcp; then
-        log_error "Port ${port} is already in use. Please check for other services using this port."
-        return 1
-    fi
-    return 0
-}
-
 # Set user and group IDs
 userid="$(id -u)" # Default to current user
 groupid="$(id -g)" # Default to current group
@@ -49,11 +37,6 @@ if [ -n "${PUID}" ] && [ -n "${PGID}" ]; then
 else
     log_info "Running as user ${userid}:${groupid}"
 fi
-
-# Check required ports first, before making any changes
-log_info "Checking if required ports are available..."
-check_port "${UI_PORT}" || { log_error "Web UI port ${UI_PORT} is unavailable. Exiting."; exit 1; }
-check_port "${ARIA2RPCPORT}" || { log_error "Aria2 RPC port ${ARIA2RPCPORT} is unavailable. Exiting."; exit 1; }
 
 # Create directories with proper ownership
 mkdir -p "${conf_path}" "${data_path}" || { log_error "Failed to create required directories"; exit 1; }
