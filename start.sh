@@ -163,7 +163,7 @@ trap shutdown SIGTERM SIGINT
 
 # Start services
 log_info "Starting Caddy..."
-caddy start -config "${caddyfile}" -adapter=caddyfile || { log_error "Failed to start Caddy"; exit 1; }
+caddy start --config "${caddyfile}" --adapter=caddyfile || { log_error "Failed to start Caddy"; exit 1; }
 sleep 1  # Give Caddy a moment to start
 
 log_info "Starting aria2c..."
