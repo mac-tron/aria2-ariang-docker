@@ -149,12 +149,20 @@ caddy start --config "${caddyfile}" --adapter=caddyfile || { log_error "Failed t
 sleep 1  # Give Caddy a moment to start
 
 log_info "Starting aria2c..."
-# Run aria2c and capture error output
-ERROR_LOG="/tmp/aria2c_error.log"
-if ! su-exec "${userid}:${groupid}" aria2c --daemon ${ARIA2_PORT_OPTION} "$@" 2>$ERROR_LOG; then
-    log_error "Failed to start aria2c. Error: $(cat $ERROR_LOG)"
-    exit 1
+# Check if move.sh exists and is executable
+if [ -f "/aria2/conf/move.sh" ]; then
+    if [ ! -x "/aria2/conf/move.sh" ]; then
+        log_warn "move.sh exists but is not executable. Adding execute permission."
+        chmod +x "/aria2/conf/move.sh" || log_warn "Could not set execute permission on move.sh"
+    fi
+else
+    log_warn "move.sh does not exist. This may cause aria2c to fail."
 fi
+
+# Run aria2c and capture error output in detail
+ERROR_LOG="/tmp/aria2c_error.log"
+log_info "Running aria2c"
+su-exec "$userid":"$groupid" aria2c "$@"
 
 # Try to get the PID
 sleep 1
