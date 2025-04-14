@@ -66,8 +66,7 @@ EXPOSE ${UI_PORT}
 EXPOSE ${ARIA2RPCPORT}
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD pgrep caddy && [ -f /aria2/conf/aria2.pid ] && \
-      kill -0 $(cat /aria2/conf/aria2.pid) 2>/dev/null && \
+  CMD pgrep caddy && pgrep aria2c && \
       curl -sf http://localhost:${UI_PORT} >/dev/null
 
 ENTRYPOINT ["./start.sh"]

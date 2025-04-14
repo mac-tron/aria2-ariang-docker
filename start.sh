@@ -134,25 +134,22 @@ fi
 # Function to handle shutdown
 shutdown() {
     log_info "Shutting down..."
-    if [ -f "${pid_file}" ]; then
-        aria2_pid=$(cat "${pid_file}" 2>/dev/null)
-        if [ -n "${aria2_pid}" ] && kill -0 "${aria2_pid}" 2>/dev/null; then
-            kill -TERM "${aria2_pid}" 2>/dev/null || true
-            # Wait for process to terminate
-            for i in $(seq 1 10); do
-                if ! kill -0 "${aria2_pid}" 2>/dev/null; then
-                    break
-                fi
-                sleep 1
-            done
-            # Force kill if still running
-            if kill -0 "${aria2_pid}" 2>/dev/null; then
-                log_warn "aria2c didn't terminate gracefully, forcing..."
-                kill -9 "${aria2_pid}" 2>/dev/null || true
+    if [ -n "${ARIA2_PID}" ] && kill -0 "${ARIA2_PID}" 2>/dev/null; then
+        kill -TERM "${ARIA2_PID}" 2>/dev/null || true
+        # Wait for process to terminate
+        for i in $(seq 1 10); do
+            if ! kill -0 "${ARIA2_PID}" 2>/dev/null; then
+                break
             fi
+            sleep 1
+        done
+        # Force kill if still running
+        if kill -0 "${ARIA2_PID}" 2>/dev/null; then
+            log_warn "aria2c didn't terminate gracefully, forcing..."
+            kill -9 "${ARIA2_PID}" 2>/dev/null || true
         fi
-        rm -f "${pid_file}" 2>/dev/null || true
     fi
+    rm -f "${pid_file}" 2>/dev/null || true
     caddy stop
     log_info "Services stopped gracefully"
     exit 0
@@ -168,8 +165,16 @@ sleep 1  # Give Caddy a moment to start
 
 log_info "Starting aria2c..."
 # Run aria2c in daemon mode with proper user permissions
-su-exec "${userid}:${groupid}" aria2c --daemon --pid-file="${pid_file}" ${ARIA2_PORT_OPTION} "$@" || { log_error "Failed to start aria2c"; exit 1; }
+su-exec "${userid}:${groupid}" aria2c --daemon ${ARIA2_PORT_OPTION} "$@" & 
+ARIA2_PID=$!
+echo "${ARIA2_PID}" > "${pid_file}" || log_warn "Could not write PID file"
 sleep 1  # Give aria2c a moment to start
+
+# Verify aria2c process is still running after a moment
+if ! kill -0 "${ARIA2_PID}" 2>/dev/null; then
+    log_error "Failed to start aria2c"
+    exit 1
+fi
 
 # Verify services are running
 if ! pgrep caddy >/dev/null; then
@@ -177,16 +182,11 @@ if ! pgrep caddy >/dev/null; then
     exit 1
 fi
 
-if [ ! -f "${pid_file}" ] || ! kill -0 "$(cat "${pid_file}")" 2>/dev/null; then
-    log_error "aria2c failed to start"
-    exit 1
-fi
-
 log_info "Setup complete - AriaNG is available at http://localhost:${UI_PORT}"
 
 # Keep the container running and monitor processes
 while true; do
-    if [ ! -f "${pid_file}" ] || ! kill -0 "$(cat "${pid_file}")" 2>/dev/null; then
+    if ! kill -0 "${ARIA2_PID}" 2>/dev/null; then
         log_error "aria2c process died, shutting down..."
         shutdown
     fi
