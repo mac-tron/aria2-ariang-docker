@@ -41,7 +41,7 @@ RUN mkdir -p /usr/local/caddy /var/log/caddy /aria2/conf-copy /aria2/conf /aria2
 WORKDIR /usr/local/www/ariang
 
 # Download and install AriaNg
-RUN wget --no-check-certificate --tries=3 --timeout=15 --retry-connrefused \
+RUN wget --no-check-certificate --tries=3 --timeout=15 \
     https://github.com/mayswind/AriaNg/releases/download/${ARIANG_VERSION}/AriaNg-${ARIANG_VERSION}.zip \
     -O ariang.zip \
     && unzip ariang.zip \
