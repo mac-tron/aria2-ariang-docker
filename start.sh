@@ -79,7 +79,7 @@ fi
 mkdir -p /var/log/caddy || log_warn "Could not create Caddy log directory"
 
 # Set permissions
-chown -R "${userid}:${groupid}" "${conf_path}" "${data_path}" /var/log/caddy /config || log_warn "Could not set ownership of directories"
+chown -R "${userid}:${groupid}" "${conf_path}" "${data_path}" /var/log/caddy || log_warn "Could not set ownership of essential directories"
 
 # Verify Caddyfile
 log_info "Validating Caddy configuration..."
